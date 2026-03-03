@@ -1,0 +1,5 @@
+- everything needed to deploy is in edashboard.zip
+- copy over to remote server and unzip
+- env config copy from nestjs edashboard with port 8200
+- use nssm to register service
+- stop nestjs edashboard service and start g-edashboard service

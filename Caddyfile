@@ -1,0 +1,41 @@
+{
+    # auto_https off
+    servers {
+        timeouts {
+            read_body 600s
+        }
+    }
+}
+
+:80 {
+    bind 0.0.0.0
+
+    handle_path /nest-smrp* {
+        rewrite * /smrp{path}
+        reverse_proxy 127.0.0.1:8101
+    }
+
+    handle /dashboard* {
+        root ./html
+        try_files {path} {path}/ /dashboard/index.html
+        file_server 
+    }
+
+    handle /smrp* {
+        root ./html
+        try_files {path} {path}/ /smrp/index.html
+        file_server 
+    }
+
+    handle /ngws* {
+        root ./html
+        try_files {path} {path}/ /ngws/index.html
+        file_server 
+    }
+
+    handle /ngws-prod* {
+        root ./html
+        try_files {path} {path}/ /ngws-prod/index.html
+        file_server 
+    }
+}

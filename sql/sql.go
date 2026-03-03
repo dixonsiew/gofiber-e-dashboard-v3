@@ -1,0 +1,1222 @@
+package sql
+
+const REGISTRATION_ADMISSION =
+    `SELECT NVL(SPECIALTY, 'Unknown') AS SPECIALTY, SUM(TOTAL) AS TOTAL
+    FROM
+    (
+        SELECT COUNT(*) AS TOTAL , SPECIALTY
+        FROM NH_DSHB_IP_PATIENT_STATS
+        WHERE HOSPITAL_CODE = :hospital_code
+        AND DASHBOARD_SESSION_USER = :username
+        AND DASHBOARD_SESSION_TOKEN = :token		
+        AND ADMISSION_DATE LIKE TRUNC(SYSDATE) 
+        group by SPECIALTY
+    )
+    GROUP BY SPECIALTY
+    ORDER BY 2`
+
+const IP_BY_SPECIALTY =
+    `SELECT COUNT(1) AS "TOTAL", NVL(SPECIALTY, 'Unknown') AS SPECIALTY
+    FROM NH_DSHB_IP_PATIENT_STATS
+    WHERE HOSPITAL_CODE = :hospital_code
+    AND DASHBOARD_SESSION_USER = :username
+    AND DASHBOARD_SESSION_TOKEN = :token	
+    AND VISIT_STATUS = 'ADMITTED'
+    GROUP BY SPECIALTY, VISIT_STATUS
+    ORDER BY 1`
+
+const IP_AVG_LOS =
+    `SELECT NVL(SPECIALTY, 'Unknown') AS SPECIALTY, CEIL(AVG(DISCHARGE_DATE - ADMISSION_DATE)) AS AVG_LOS 
+    FROM NH_DSHB_IP_PATIENT_STATS
+    WHERE ADMISSION_DATE IS NOT NULL
+    AND DISCHARGE_DATE IS NOT NULL
+    AND ADMISSION_DATE >= TRUNC(SYSDATE - 730)
+    AND HOSPITAL_CODE = :hospital_code
+    AND DASHBOARD_SESSION_USER = :username
+    AND DASHBOARD_SESSION_TOKEN = :token	
+    GROUP BY SPECIALTY
+    ORDER BY SPECIALTY`
+
+const IP_DEMOGRAPHICS_GENDER =
+    `SELECT 
+        CASE WHEN PATIENT_GENDER IS NULL THEN 'Unspecified'
+        ELSE PATIENT_GENDER
+        END AS "Category", COUNT(*) AS "Count"
+    FROM NH_DSHB_IP_PATIENT_STATS
+    WHERE HOSPITAL_CODE = :hospital_code
+    AND VISIT_STATUS = 'ADMITTED'
+    AND DASHBOARD_SESSION_USER = :username
+    AND DASHBOARD_SESSION_TOKEN = :token	
+    GROUP BY PATIENT_GENDER
+    ORDER BY PATIENT_GENDER`
+
+const IP_DEMOGRAPHICS_RACE =
+    `SELECT 
+        CASE WHEN PATIENT_RACE IS NULL THEN 'Undefined'
+        ELSE PATIENT_RACE
+        END AS "Category", COUNT(*) AS "Count"
+    FROM NH_DSHB_IP_PATIENT_STATS
+    WHERE HOSPITAL_CODE = :hospital_code
+    AND DASHBOARD_SESSION_USER = :username
+    AND DASHBOARD_SESSION_TOKEN = :token	
+    AND VISIT_STATUS = 'ADMITTED'
+    GROUP BY PATIENT_RACE
+    ORDER BY PATIENT_RACE`
+
+const IP_DEMOGRAPHICS_AGE =
+    `SELECT AGERANGE AS "Category", COUNT(*) AS "Count"
+     FROM (
+        SELECT 
+            CASE
+                WHEN DOB IS NULL THEN 'Undefined'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) < 10) THEN '0 To <10'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 10 AND 18) THEN '10 To <19'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 19 AND 29) THEN '19 To <30'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 30 AND 39) THEN '30 To <40'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 40 AND 49) THEN '40 To <50'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 50 AND 54) THEN '50 To <55'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 55 AND 59) THEN '55 To <60'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 60 AND 64) THEN '60 To <65'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 65 AND 69) THEN '65 To <70'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 70 AND 74) THEN '70 To <75'
+                WHEN (trunc(months_between (SYSDATE, DOB) / 12) BETWEEN 75 AND 79) THEN '75 To <80'
+                ELSE '>80'
+            END AS "AGERANGE"
+        FROM NH_DSHB_IP_PATIENT_STATS
+        WHERE HOSPITAL_CODE = :hospital_code
+        AND DASHBOARD_SESSION_USER = :username
+        AND DASHBOARD_SESSION_TOKEN = :token	
+        AND VISIT_STATUS = 'ADMITTED'
+        )
+     GROUP BY AGERANGE
+     ORDER BY AGERANGE`
+
+const IP_DEMOGRAPHICS_NATIONALITY =
+    `SELECT PATIENT_NATIONALITY AS "Category", COUNT(*) AS "Count"
+    FROM NH_DSHB_IP_PATIENT_STATS
+    WHERE HOSPITAL_CODE = :hospital_code
+    AND VISIT_STATUS = 'ADMITTED'
+    AND DASHBOARD_SESSION_USER = :username
+    AND DASHBOARD_SESSION_TOKEN = :token	
+    GROUP BY PATIENT_NATIONALITY
+    ORDER BY PATIENT_NATIONALITY`
+
+const IP_DEMOGRAPHICS_PAYMENTCLASS =
+    `SELECT PAYMENT_CLASS AS "Category", COUNT(*) AS "Count"
+    FROM NH_DSHB_IP_PATIENT_STATS
+    WHERE HOSPITAL_CODE = :hospital_code
+    AND VISIT_STATUS = 'ADMITTED'
+    AND DASHBOARD_SESSION_USER = :username
+    AND DASHBOARD_SESSION_TOKEN = :token	
+    GROUP BY PAYMENT_CLASS
+    ORDER BY PAYMENT_CLASS`
+
+const IP_BED_STATUS =
+    `SELECT COUNT(1) AS "TOTAL_BEDS", BED_STATUS AS "STATUS_DESC"
+    FROM NH_DSHB_BED_STATUS_STATS 
+    WHERE HOSPITAL_CODE = :hospital_code
+    AND DASHBOARD_SESSION_USER = :username
+    AND DASHBOARD_SESSION_TOKEN = :token	
+    GROUP BY BED_STATUS
+    ORDER BY 1`
+
+const OP_DEMOGRAPHICS_NATIONALITY =
+    `SELECT PATIENT_NATIONALITY As "Category", SUM(NEWCASE) AS "New", SUM(FOLLOWUP) AS "FollowUp"
+    FROM (
+        SELECT DISTINCT(VISIT_NO) AS VISIT_NO, PATIENT_NATIONALITY, CASE_TYPE, 
+        CASE WHEN CASE_TYPE = 'NEW CASE' THEN 1 ELSE 0 END as "NEWCASE", 
+        CASE WHEN CASE_TYPE = 'FOLLOW-UP' THEN 1 ELSE 0 END as "FOLLOWUP" 
+        FROM NH_DSHB_TODAY_OP_PATIENT_STATS 
+        WHERE HOSPITAL_CODE = :hospital_code
+        AND DASHBOARD_SESSION_USER = :username
+        AND DASHBOARD_SESSION_TOKEN = :token
+    ) 
+    GROUP BY PATIENT_NATIONALITY
+    ORDER BY PATIENT_NATIONALITY`
+
+const OP_DEMOGRAPHICS_PAYMENTCLASS =
+    `SELECT PATIENT_CLASS As "Category", SUM(NEWCASE) AS "New", SUM(FOLLOWUP) AS "FollowUp"
+    FROM (
+        SELECT DISTINCT(VISIT_NO) AS VISIT_NO, PATIENT_CLASS, CASE_TYPE, 
+        CASE WHEN CASE_TYPE = 'NEW CASE' THEN 1 ELSE 0 END as "NEWCASE", 
+        CASE WHEN CASE_TYPE = 'FOLLOW-UP' THEN 1 ELSE 0 END as "FOLLOWUP" 
+        FROM NH_DSHB_TODAY_OP_PATIENT_STATS 
+        WHERE HOSPITAL_CODE = :hospital_code
+        AND DASHBOARD_SESSION_USER = :username
+        AND DASHBOARD_SESSION_TOKEN = :token	
+    ) 
+    GROUP BY PATIENT_CLASS
+    ORDER BY PATIENT_CLASS`
+
+const OP_DEMOGRAPHICS_PATIENTTYPE =
+    `SELECT VISIT_TYPE As "Category", SUM(NEWCASE) AS "New", SUM(FOLLOWUP) AS "FollowUp"
+    FROM (
+        SELECT DISTINCT(VISIT_NO) AS VISIT_NO, VISIT_TYPE, CASE_TYPE, 
+        CASE WHEN CASE_TYPE = 'NEW CASE' THEN 1 ELSE 0 END as "NEWCASE", 
+        CASE WHEN CASE_TYPE = 'FOLLOW-UP' THEN 1 ELSE 0 END as "FOLLOWUP" 
+        FROM NH_DSHB_TODAY_OP_PATIENT_STATS 
+        WHERE HOSPITAL_CODE = :hospital_code
+        AND DASHBOARD_SESSION_USER = :username
+        AND DASHBOARD_SESSION_TOKEN = :token
+    ) 
+    GROUP BY VISIT_TYPE
+    ORDER BY VISIT_TYPE`
+
+const OP_ATTENDANCES =
+    `SELECT COUNT(VISIT_NO) AS TOTAL_PATIENT, TIME_SLOT
+    FROM
+    (
+        SELECT DISTINCT(VISIT_NO) AS VISIT_NO, TO_CHAR(SUBSTR(REGISTRATION_TIME, 1, 2)) As TIME_SLOT 
+        FROM NH_DSHB_TODAY_OP_PATIENT_STATS
+        WHERE HOSPITAL_CODE = :hospital_code
+        AND DASHBOARD_SESSION_TOKEN = :token
+        AND DASHBOARD_SESSION_USER = :username
+        AND QUEUE_START_TIME IS NOT NULL
+    )
+    GROUP BY TIME_SLOT
+    ORDER BY TIME_SLOT`
+
+const OP_CLINIC_QUEUE =
+    `SELECT CLINIC_CODE, SUM(TotalPatientCount) AS TotalPatientCount, SUM(TotalWithinKPI) AS TotalWithinKPI, SUM(TotalExceedKPI) AS TotalExceedKPI
+        FROM
+        (
+            SELECT REG_CLINIC_DESCRIPTION AS CLINIC_CODE, TotalPatientCount, KPIQueueCount, 
+            CASE 
+                  WHEN (KPIQueueCount = 0) THEN TotalPatientCount
+                  WHEN (TotalPatientCount - (TotalPatientCount - KPIQueueCount)) > TotalPatientCount THEN TotalPatientCount
+                  ELSE TotalPatientCount - (TotalPatientCount - KPIQueueCount)
+            END AS TotalWithinKPI,
+            CASE
+                  WHEN (KPIQueueCount = 0) THEN 0
+                  WHEN (TotalPatientCount - KPIQueueCount) > 0 THEN (TotalPatientCount - KPIQueueCount)
+                 ELSE 0
+            END AS TotalExceedKPI
+            FROM (
+            SELECT REG_CLINIC_DESCRIPTION, TotalPatientCount, NVL((SELECT KPI_QUEUE_COUNT FROM NH_DSHB_DOCTOR_KPI WHERE DOCTOR_MCR = c.DR_MCR AND ROWNUM = 1), 0) AS KPIQueueCount
+            FROM (
+            SELECT b.REG_CLINIC_DESCRIPTION, a.CONSULTATION_DR_MCR AS DR_MCR, COUNT(a.REG_CLINIC_CODE) AS TotalPatientCount
+            FROM (
+                SELECT DISTINCT REG_CLINIC_CODE, REG_CLINIC_DESCRIPTION 
+                FROM NH_DSHB_TODAY_OP_PATIENT_STATS 
+                WHERE HOSPITAL_CODE = :hospital_code
+                AND DASHBOARD_SESSION_TOKEN = :token
+                AND DASHBOARD_SESSION_USER = :username
+            ) b
+            LEFT OUTER JOIN NH_DSHB_TODAY_OP_PATIENT_STATS a
+            ON a.REG_CLINIC_CODE = b.REG_CLINIC_CODE
+            AND a.QUEUE_START_TIME IS NOT NULL
+            AND a.QUEUE_PICKUP_TIME IS NULL
+            AND a.REGISTRATION_STATUS != 'CLOSED'
+            AND a.DASHBOARD_SESSION_TOKEN = :token
+            AND a.DASHBOARD_SESSION_USER = :username			
+            GROUP BY b.REG_CLINIC_DESCRIPTION, a.CONSULTATION_DR_MCR
+            ORDER BY b.REG_CLINIC_DESCRIPTION
+            ) c
+            WHERE TotalPatientCount > 0
+        )
+    ) 
+    GROUP BY CLINIC_CODE`
+
+const OP_CLINIC_QUEUE_POPUP =
+    `SELECT CONSULTATION_DR_NAME, NVL(TotalWithinKPI, 0) AS TotalWithinKPI, NVL(TotalExceedKPI, 0) AS TotalExceedKPI
+	  FROM (
+	 	SELECT DR_NAME AS CONSULTATION_DR_NAME,
+			CASE
+				WHEN (KPIQueueCount = 0) THEN TotalPatientCount
+			  	WHEN (TotalPatientCount - (TotalPatientCount - KPIQueueCount)) > TotalPatientCount THEN TotalPatientCount
+			  	ELSE TotalPatientCount - (TotalPatientCount - KPIQueueCount)
+		  	END AS TotalWithinKPI,
+		  	
+			CASE
+				WHEN (KPIQueueCount = 0) THEN 0
+				WHEN (TotalPatientCount - KPIQueueCount) > 0 THEN (TotalPatientCount - KPIQueueCount)
+				  	ELSE 0
+					END AS TotalExceedKPI
+					  FROM (
+					  SELECT 
+						DR_NAME, 
+						TotalPatientCount, 
+						NVL((SELECT KPI_QUEUE_COUNT FROM NH_DSHB_DOCTOR_KPI WHERE DOCTOR_MCR = c.DR_MCR AND ROWNUM = 1), 0) AS KPIQueueCount
+					FROM (
+			  SELECT b.REG_CLINIC_DESCRIPTION, a.CONSULTATION_DR_MCR AS DR_MCR, a.CONSULTATION_DR_NAME AS DR_NAME, COUNT(a.REG_CLINIC_DESCRIPTION) AS TotalPatientCount
+			  FROM (
+				  SELECT DISTINCT REG_CLINIC_DESCRIPTION 
+				  FROM NH_DSHB_TODAY_OP_PATIENT_STATS
+				  WHERE HOSPITAL_CODE = :hospital_code 
+				  AND REG_CLINIC_DESCRIPTION = :clinicCode
+				  AND DASHBOARD_SESSION_TOKEN = :token
+				  AND DASHBOARD_SESSION_USER = :username
+			  ) b
+			  LEFT OUTER JOIN NH_DSHB_TODAY_OP_PATIENT_STATS a
+			  ON a.REG_CLINIC_DESCRIPTION = b.REG_CLINIC_DESCRIPTION
+			  AND a.QUEUE_START_TIME IS NOT NULL
+			  AND a.QUEUE_PICKUP_TIME IS NULL
+			  AND a.REGISTRATION_STATUS != 'CLOSED'
+			  AND a.DASHBOARD_SESSION_TOKEN = :token
+			  AND a.DASHBOARD_SESSION_USER = :username
+			  AND a.HOSPITAL_CODE = :hospital_code
+			  GROUP BY b.REG_CLINIC_DESCRIPTION, a.CONSULTATION_DR_NAME, a.CONSULTATION_DR_MCR
+			  ORDER BY b.REG_CLINIC_DESCRIPTION
+			  ) c
+		 )
+	  )`
+
+const OP_CONSULTANT =
+    `SELECT 
+        CLINIC_CODE, 
+        NVL(SUM(TotalPatientCount), 0) AS TotalPatientCount, 
+        NVL(SUM(TotalWithinKPI), 0) AS TotalWithinKPI, 
+        NVL(SUM(TotalExceedKPI), 0) AS TotalExceedKPI
+    FROM
+    (
+        SELECT CLINIC_CODE, TotalPatientCount, TotalConsultationTime, KPIConsultationCount,
+            CASE
+                WHEN (KPIConsultationCount = 0) THEN TotalPatientCount
+                WHEN (TotalConsultationTime > KPIConsultationCount) THEN 0
+                ELSE 1
+            END AS TotalWithinKPI,
+            CASE
+                WHEN (KPIConsultationCount = 0) THEN 0
+                WHEN (TotalConsultationTime > KPIConsultationCount) THEN 1
+                ELSE 0
+            END AS TotalExceedKPI        
+        FROM 
+        (
+            SELECT REG_CLINIC_DESCRIPTION AS CLINIC_CODE, TotalPatientCount, 
+                    TotalConsultationTime, 
+                    NVL((SELECT KPI_CONSULTATION_TIME FROM NH_DSHB_DOCTOR_KPI WHERE DOCTOR_MCR = DR_MCR AND ROWNUM = 1), 0) AS KPIConsultationCount
+            FROM (
+                SELECT REG_CLINIC_DESCRIPTION, DR_MCR, TotalPatientCount, ROUND((END_SESSION_TIME - QUEUE_PICKUP_TIME) * 24 * 60) AS TotalConsultationTime
+                FROM
+                (
+                    SELECT 
+                        b.REG_CLINIC_DESCRIPTION,
+                        a.CONSULTATION_DR_MCR AS DR_MCR, 
+                        COUNT(a.REG_CLINIC_CODE) AS TotalPatientCount,
+                        a.END_SESSION_TIME,
+                        a.QUEUE_PICKUP_TIME
+                    FROM (SELECT DISTINCT REG_CLINIC_CODE, REG_CLINIC_DESCRIPTION FROM NH_DSHB_TODAY_OP_PATIENT_STATS WHERE HOSPITAL_CODE = :hospital_code) b
+                    LEFT OUTER JOIN NH_DSHB_TODAY_OP_PATIENT_STATS a
+                    ON a.REG_CLINIC_CODE = b.REG_CLINIC_CODE
+                    AND a.QUEUE_START_TIME IS NOT NULL
+                    AND a.QUEUE_PICKUP_TIME IS NOT NULL
+                    AND a.REGISTRATION_STATUS != 'CLOSED'
+                    AND a.DASHBOARD_SESSION_TOKEN = :token
+                    AND a.DASHBOARD_SESSION_USER = :username
+                    GROUP BY b.REG_CLINIC_DESCRIPTION, a.CONSULTATION_DR_MCR, a.END_SESSION_TIME, a.QUEUE_PICKUP_TIME
+                    ORDER BY b.REG_CLINIC_DESCRIPTION
+                )
+                WHERE TotalPatientCount > 0
+            )
+        )
+    ) GROUP BY CLINIC_CODE`
+
+const OP_CONSULTANT_POPUP =
+    `SELECT DR_NAME AS CONSULTATION_DR_NAME, NVL(SUM(TotalWithinKPI), 0) AS TotalWithinKPI, NVL(SUM(TotalExceedKPI), 0) AS TotalExceedKPI
+		  FROM (
+			  SELECT DR_NAME, TotalPatientCount, TotalConsultationTime, KPIConsultationCount,
+			  CASE
+				  WHEN (KPIConsultationCount = 0) THEN TotalPatientCount
+				  WHEN (TotalConsultationTime > KPIConsultationCount) THEN 0
+				  ELSE 1
+			  END AS TotalWithinKPI,
+			  CASE
+				  WHEN (KPIConsultationCount = 0) THEN 0
+				  WHEN (TotalConsultationTime > KPIConsultationCount) THEN 1
+				  ELSE 0
+			  END AS TotalExceedKPI
+			  FROM (
+				  SELECT DR_NAME, TotalPatientCount, TotalConsultationTime, 
+				  NVL((SELECT KPI_CONSULTATION_TIME FROM NH_DSHB_DOCTOR_KPI WHERE DOCTOR_MCR = DR_MCR AND ROWNUM = 1), 0) AS KPIConsultationCount
+				  FROM (
+					  SELECT DR_MCR, DR_NAME, TotalPatientCount, ROUND((END_SESSION_TIME - QUEUE_PICKUP_TIME) * 24 * 60) AS TotalConsultationTime
+					  FROM (
+						  SELECT b.REG_CLINIC_DESCRIPTION, a.CONSULTATION_DR_MCR AS DR_MCR, a.CONSULTATION_DR_NAME AS DR_NAME, 
+						  COUNT(a.REG_CLINIC_DESCRIPTION) AS TotalPatientCount, a.END_SESSION_TIME, a.QUEUE_PICKUP_TIME
+						  FROM (
+							  SELECT DISTINCT REG_CLINIC_DESCRIPTION FROM NH_DSHB_TODAY_OP_PATIENT_STATS 
+							  WHERE HOSPITAL_CODE = :hospital_code AND REG_CLINIC_DESCRIPTION = :clinicCode) b
+							  LEFT OUTER JOIN NH_DSHB_TODAY_OP_PATIENT_STATS a
+							  ON a.REG_CLINIC_DESCRIPTION = b.REG_CLINIC_DESCRIPTION
+							  AND a.QUEUE_START_TIME IS NOT NULL
+							  AND a.QUEUE_PICKUP_TIME IS NOT NULL
+							  AND a.REGISTRATION_STATUS != 'CLOSED'
+							  AND a.DASHBOARD_SESSION_TOKEN = :token
+							  AND a.DASHBOARD_SESSION_USER = :username
+							  AND a.HOSPITAL_CODE = :hospital_code
+							  GROUP BY b.REG_CLINIC_DESCRIPTION, a.CONSULTATION_DR_MCR, a.CONSULTATION_DR_NAME, a.END_SESSION_TIME, a.QUEUE_PICKUP_TIME
+							  ORDER BY b.REG_CLINIC_DESCRIPTION
+						  ) c
+					  )
+				  )
+			  ) 
+		  GROUP BY DR_NAME
+		  ORDER BY DR_NAME`
+
+const BED_STATUS_BY_WARD =
+    `SELECT WARD_NAME AS "WARDNAME", COUNT(*) AS "TOTAL"
+    FROM NH_DSHB_BED_STATUS_STATS 
+    WHERE HOSPITAL_CODE = :hospital_code
+    AND DASHBOARD_SESSION_USER = :username
+    AND DASHBOARD_SESSION_TOKEN = :token
+    AND BED_STATUS = :bed_status
+    GROUP BY WARD_NAME
+    ORDER BY WARD_NAME`
+
+// Ward Census by Ward
+const WARD_CENSUS_BY_WARD =
+    `SELECT WARD AS "Category", COUNT(*) AS "Count"
+    FROM NH_RPT_WARD_CENSUS_TEMP
+    WHERE USER_SESSION_ID = :usersessionid
+    AND USER_ID = :userid
+    GROUP BY WARD
+    ORDER BY WARD`
+
+// Ward Census By Payment Class
+const WARD_CENSUS_BY_PAYMENTCLASS =
+    `SELECT PAYMENT_CLASS AS "Category", COUNT(*) AS "Count"
+    FROM NH_RPT_WARD_CENSUS_TEMP
+    WHERE USER_SESSION_ID = :usersessionid
+    AND USER_ID = :userid
+    GROUP BY PAYMENT_CLASS
+    ORDER BY PAYMENT_CLASS`
+
+// Ward Census By Age
+const WARD_CENSUS_BY_AGE =
+    `SELECT AGERANGE AS "Category", COUNT(*) AS "Count"
+    FROM (
+    SELECT 
+        AGE,  
+        CASE
+        WHEN AGE IS NULL THEN 'Undefined'
+        WHEN (AGE < 10) THEN '0 To <10'
+        WHEN (AGE BETWEEN 10 AND 18) THEN '10 To <19'
+        WHEN (AGE BETWEEN 19 AND 29) THEN '19 To <30'
+        WHEN (AGE BETWEEN 30 AND 39) THEN '30 To <40'
+        WHEN (AGE BETWEEN 40 AND 49) THEN '40 To <50'
+        WHEN (AGE BETWEEN 50 AND 54) THEN '50 To <55'
+        WHEN (AGE BETWEEN 55 AND 59) THEN '55 To <60'
+        WHEN (AGE BETWEEN 60 AND 64) THEN '60 To <65'
+        WHEN (AGE BETWEEN 65 AND 69) THEN '65 To <70'
+        WHEN (AGE BETWEEN 70 AND 74) THEN '70 To <75'
+        WHEN (AGE BETWEEN 75 AND 79) THEN '75 To <80'
+        ELSE '>80'
+        END AS "AGERANGE"
+    FROM NH_RPT_WARD_CENSUS_TEMP
+    WHERE USER_SESSION_ID = :usersessionid
+    AND USER_ID = :userid
+    ) 
+    GROUP BY AGERANGE
+    ORDER BY AGERANGE`
+
+// AR Ageing
+const AR_AGEING =
+    `SELECT 
+    AMOUNT_AP_01 AS "30Days", 
+    AMOUNT_AP_02 AS "60Days", 
+    AMOUNT_AP_03 AS "90Days", 
+    AMOUNT_AP_04 AS "120Days", 
+    AMOUNT_AP_05 AS "365Days", 
+    AMOUNT_AP_06 AS "More", 
+    AMOUNT_AP_01 + AMOUNT_AP_02 + AMOUNT_AP_03 + AMOUNT_AP_04 + AMOUNT_AP_05 + AMOUNT_AP_06 AS "Total"
+    FROM
+    (
+    SELECT 
+        ROUND(SUM(AMOUNT_AP_01)) AS "AMOUNT_AP_01",
+        ROUND(SUM(AMOUNT_AP_02)) AS "AMOUNT_AP_02",
+        ROUND(SUM(AMOUNT_AP_03)) AS "AMOUNT_AP_03",
+        ROUND(SUM(AMOUNT_AP_04)) AS "AMOUNT_AP_04",
+        ROUND(SUM(AMOUNT_AP_05)) AS "AMOUNT_AP_05",
+        ROUND(SUM(AMOUNT_AP_06)) AS "AMOUNT_AP_06"
+    FROM NH_RPT_AR_AGING_TEMP
+    WHERE USER_ID = :userid 
+    AND USER_SESSION_ID = :usersessionid
+    AND CUSTOMER_TYPE = :customertype
+    )`
+
+
+//Start : Rosalind edited 12-Apr-2016 @ Cater for "Overall AR Aging"
+const AR_AGEING_OVERALL =
+    `SELECT 
+        AMOUNT_AP_01 AS "30Days", 
+        AMOUNT_AP_02 AS "60Days", 
+        AMOUNT_AP_03 AS "90Days", 
+        AMOUNT_AP_04 AS "120Days", 
+        AMOUNT_AP_05 AS "365Days", 
+        AMOUNT_AP_06 AS "More", 
+        AMOUNT_AP_01 + AMOUNT_AP_02 + AMOUNT_AP_03 + AMOUNT_AP_04 + AMOUNT_AP_05 + AMOUNT_AP_06 AS "Total"
+    FROM
+    (
+        SELECT 
+            ROUND(SUM(AMOUNT_AP_01)) AS "AMOUNT_AP_01",
+            ROUND(SUM(AMOUNT_AP_02)) AS "AMOUNT_AP_02",
+            ROUND(SUM(AMOUNT_AP_03)) AS "AMOUNT_AP_03",
+            ROUND(SUM(AMOUNT_AP_04)) AS "AMOUNT_AP_04",
+            ROUND(SUM(AMOUNT_AP_05)) AS "AMOUNT_AP_05",
+            ROUND(SUM(AMOUNT_AP_06)) AS "AMOUNT_AP_06"
+        FROM NH_RPT_AR_AGING_TEMP
+        WHERE USER_ID = :userid 
+        AND USER_SESSION_ID = :usersessionid
+    )`
+
+//End : Rosalind edited 12-Apr-2016 @ Cater for "Overall AR Aging"
+
+//Start : Rosalind edited 13-Apr-2016 @ Cater for "Top # AR Outstanding"
+const AR_AGEING_TOP =
+    `SELECT *
+        FROM (SELECT INSURER_NAME, ROUND(AMOUNT_AP_01 + AMOUNT_AP_02 + AMOUNT_AP_03 + AMOUNT_AP_04 + AMOUNT_AP_05 + AMOUNT_AP_06) AS AMT_TOTAL 
+                        FROM NH_RPT_AR_AGING_TEMP A
+                     WHERE USER_ID = :userid 
+                            AND CUSTOMER_TYPE = :customertype
+                            AND USER_SESSION_ID = :usersessionid
+                            AND INSURER_CODE IS NOT NULL
+                      ORDER BY AMT_TOTAL DESC)
+    WHERE ROWNUM <= :TopARCount`
+
+const AR_AGEING_TOPALL =
+    `SELECT INSURER_NAME, ROUND(AMOUNT_AP_01 + AMOUNT_AP_02 + AMOUNT_AP_03 + AMOUNT_AP_04 + AMOUNT_AP_05 + AMOUNT_AP_06) AS AMT_TOTAL 
+    FROM NH_RPT_AR_AGING_TEMP A
+    WHERE USER_ID = :userid 
+      AND CUSTOMER_TYPE = :customertype
+      AND USER_SESSION_ID = :usersessionid
+      AND INSURER_CODE IS NOT NULL
+    ORDER BY AMT_TOTAL DESC)`
+//End : Rosalind edited 13-Apr-2016 @ Cater for "Top # AR Outstanding"
+
+const LABRAD_SERVICE_CLASS =
+    `SELECT SERVICE_CLASS As "Service Class", SUM(OP_COUNT) AS "Outpatient", SUM(IP_COUNT) AS "Inpatient"
+    FROM NH_RPT_SERVICE_STATISTICS_TEMP 
+    WHERE USER_ID = :username
+    AND USER_SESSION_ID = :userSessionID
+    AND ITEM_TYPE = :reporttype
+    GROUP BY SERVICE_CLASS
+    ORDER BY SUM(OP_COUNT) DESC, SUM(IP_COUNT) DESC, SERVICE_CLASS`
+
+const LABRAD_CHARGES =
+    `SELECT SERVICE_CLASS As "Service Class", SUM(OP_CHARGE) As "Outpatient Charges", SUM(IP_CHARGE) As "Inpatient Charges",
+    SUM(OP_CHARGE) + SUM(IP_CHARGE) AS "Total"
+    FROM NH_RPT_SERVICE_CHARGES_TEMP 
+    WHERE USER_ID = :username
+    AND USER_SESSION_ID = :userSessionID
+    AND ITEM_TYPE = :reporttype
+    GROUP BY SERVICE_CLASS
+    ORDER BY SUM(OP_CHARGE) DESC, SUM(IP_CHARGE) DESC, SERVICE_CLASS`
+
+const LAB_KPI_STATISTICS =
+    `SELECT ITEM_DESC As "Item Desc", 
+                    ROUND(AVG(PERFORMANCE*60000),0) As AVG_SECONDS_PERFORM
+        FROM ( SELECT ITEM_DESC, PERFORMANCE FROM NH_RPT_LAB_KPI_STATS_TEMP
+                       WHERE USER_ID = :username
+                              AND USER_SESSION_ID = :userSessionID)
+        GROUP BY ITEM_DESC
+        ORDER BY AVG_SECONDS_PERFORM DESC, ITEM_DESC`
+
+const RADIOLOGY_KPI_STATISTICS =
+    `SELECT ITEM_DESC As "Item Desc", 
+                    ROUND(AVG(PERFORMANCE*60000),0) As AVG_SECONDS_PERFORM
+        FROM ( SELECT ITEM_DESC, PERFORMANCE FROM NH_RPT_RADIOLOGY_KPI_TEMP
+                       WHERE USER_ID = :username
+                              AND USER_SESSION_ID = :userSessionID)
+        GROUP BY ITEM_DESC
+        ORDER BY AVG_SECONDS_PERFORM DESC, ITEM_DESC`
+
+const REFERRAL_EXTERNAL =
+    `SELECT TO_CHAR(TO_DATE(A."YearMonth", 'MON YYYY'), 'MON YYYY') AS "YearMonth", A."Total" FROM
+    (
+    SELECT TO_CHAR(R.REFERRAL_DATE_TIME, 'MON YYYY') AS "YearMonth", COUNT(*) AS "Total"  
+    FROM NOVA_EXT_REFERRAL_LETTER R, NOVA_VISIT V
+    WHERE R.REFERRAL_DATE_TIME > ADD_MONTHS(TRUNC(SYSDATE,'MM'), -12)
+    AND R.ACCOUNT_NO = V.ACCOUNT_NO
+    AND V.HOSPITAL_CODE = :hospital_code
+    GROUP BY TO_CHAR(R.REFERRAL_DATE_TIME, 'MON YYYY')
+    ) A 
+    ORDER BY TO_DATE(A."YearMonth", 'MON YYYY') ASC`
+
+const REFERRAL_EXTERNAL_BY_DOCTOR =
+    `SELECT * FROM (
+        SELECT r."DoctorName" AS "DoctorName", COUNT(*) AS "TotalCount" FROM
+        (
+        SELECT 
+            (SELECT UNIQUE DOCTOR_NAME 
+            FROM NOVA_DOCTOR 
+            WHERE MCR_NO = RL.REFERRER_DOCTOR_MCR 
+            AND PRIMARY = 'YES'
+            AND HOSPITAL_CODE = :hospital_code) AS "DoctorName"
+        FROM NOVA_EXT_REFERRAL_LETTER RL, NOVA_VISIT V
+        WHERE TO_CHAR(RL.REFERRAL_DATE_TIME, 'MON YYYY') = :dt
+        AND RL.ACCOUNT_NO = V.ACCOUNT_NO
+        AND V.HOSPITAL_CODE = :hospital_code
+        ) r
+        GROUP BY r."DoctorName"
+        ORDER BY 2 DESC
+        FETCH FIRST 10 ROW ONLY
+    ) ORDER BY 2 DESC`
+
+const REFERRAL_EXTERNAL_BY_SPECIALTY =
+    `SELECT * FROM (
+        SELECT r."Specialty" AS "Specialty", COUNT(*) AS "TotalCount" FROM
+        (
+        SELECT 
+            (SELECT UNIQUE SPECIALTY_DESCRIPTION 
+            FROM NOVA_DOCTOR 
+            WHERE MCR_NO = RL.REFERRER_DOCTOR_MCR 
+            AND PRIMARY = 'YES'
+            AND HOSPITAL_CODE = :hospital_code
+            ORDER BY SYNC_DATE DESC
+            FETCH FIRST 1 ROW ONLY) AS "Specialty"
+        FROM NOVA_EXT_REFERRAL_LETTER RL, NOVA_VISIT V
+        WHERE TO_CHAR(RL.REFERRAL_DATE_TIME, 'MON YYYY') = :dt
+        AND RL.ACCOUNT_NO = V.ACCOUNT_NO
+        AND V.HOSPITAL_CODE = :hospital_code
+        ) r
+        GROUP BY r."Specialty"
+        ORDER BY 2 DESC
+        FETCH FIRST 10 ROW ONLY
+    ) ORDER BY 2 DESC`
+
+const REFERRAL_INTERNAL =
+    `SELECT TO_CHAR(TO_DATE(A."YearMonth", 'MON YYYY'), 'MON YYYY') AS "YearMonth", A."Total" FROM
+    (
+        SELECT TO_CHAR(R.REFERRAL_DATE_TIME, 'MON YYYY') AS "YearMonth", COUNT(*) AS "Total"  
+        FROM NOVA_INT_REFERRAL_LETTER R, NOVA_VISIT V
+        WHERE R.REFERRAL_DATE_TIME > ADD_MONTHS(TRUNC(SYSDATE,'MM'), -12)
+        AND R.ACCOUNT_NO = V.ACCOUNT_NO
+        AND V.HOSPITAL_CODE = :hospital_code
+        GROUP BY TO_CHAR(R.REFERRAL_DATE_TIME, 'MON YYYY')
+    ) A
+    ORDER BY TO_DATE(A."YearMonth", 'MON YYYY') ASC`
+
+const REFERRAL_INTERNAL_BY_SENDER =
+    `SELECT * FROM (
+        SELECT r."ReferralDoctorName" AS "ReferralDoctorName", COUNT(*) AS "TotalCount" FROM
+        (
+        SELECT 
+            (SELECT UNIQUE DOCTOR_NAME 
+            FROM NOVA_DOCTOR 
+            WHERE MCR_NO = RL.REFERRER_DOCTOR_MCR 
+            AND PRIMARY = 'YES'
+            AND HOSPITAL_CODE = :hospital_code) AS "ReferralDoctorName"
+        FROM NOVA_INT_REFERRAL_LETTER RL, NOVA_VISIT V
+        WHERE TO_CHAR(RL.REFERRAL_DATE_TIME, 'MON YYYY') = :dt
+        AND RL.ACCOUNT_NO = V.ACCOUNT_NO
+        AND V.HOSPITAL_CODE = :hospital_code
+        ) r
+        GROUP BY r."ReferralDoctorName"
+        ORDER BY 2 DESC
+        FETCH FIRST 10 ROW ONLY
+    ) ORDER BY 2 DESC`
+
+const REFERRAL_INTERNAL_BY_RECEIVING =
+    `SELECT * FROM (
+        SELECT r."ReferralDoctorName" AS "ReferralDoctorName", COUNT(*) AS "TotalCount" FROM
+        (
+        SELECT 
+            (SELECT UNIQUE DOCTOR_NAME 
+            FROM NOVA_DOCTOR 
+            WHERE MCR_NO = RL.REFERRAL_DOCTOR_MCR 
+            AND PRIMARY = 'YES'
+            AND HOSPITAL_CODE = :hospital_code) AS "ReferralDoctorName"
+        FROM NOVA_INT_REFERRAL_LETTER RL, NOVA_VISIT V
+        WHERE TO_CHAR(RL.REFERRAL_DATE_TIME, 'MON YYYY') = :dt
+        AND RL.ACCOUNT_NO = V.ACCOUNT_NO
+        AND V.HOSPITAL_CODE = :hospital_code
+
+        ) r
+        GROUP BY r."ReferralDoctorName"
+        ORDER BY 2 DESC
+        FETCH FIRST 10 ROW ONLY
+    ) ORDER BY 2 DESC`
+
+const APPOINTMENT_STATISTICS =
+    `SELECT TO_CHAR(TO_DATE(A."YearMonth", 'MON YYYY'), 'MON YYYY') AS "YearMonth", A."Total" FROM
+    (
+    SELECT TO_CHAR(APPOINTMENT_DATE, 'MON YYYY') AS "YearMonth", COUNT(*) AS "Total"  
+    FROM NOVA_PATIENT_APPOINTMENT
+    WHERE APPOINTMENT_DATE > ADD_MONTHS(TRUNC(SYSDATE,'MM'), -11)
+    AND APPOINTMENT_DATE < TRUNC(ADD_MONTHS(SYSDATE, 1),'MM')
+    AND HOSPITAL_CODE = :hospital_code
+    GROUP BY TO_CHAR(APPOINTMENT_DATE, 'MON YYYY')
+    ) A 
+    ORDER BY TO_DATE(A."YearMonth", 'MON YYYY') ASC`
+
+const APPOINTMENT_STATISTICS_BY_DOCTOR =
+    `SELECT G1.DOCTOR_NAME, NVL(G3.TOTAL, 0) AS "TOTAL_MISSED", NVL(G2.TOTAL, 0) AS "TOTAL_CANCELLED", NVL(G4.TOTAL, 0) AS "TOTAL_REGISTERED", G1.TOTAL AS "TOTAL"
+    FROM
+    (
+        SELECT A.DOCTOR_NAME, COUNT(*) AS "TOTAL"
+            FROM (
+                SELECT A.DOCTOR_NAME, COUNT(*) AS "Total"
+                FROM NOVA_PATIENT_APPOINTMENT A
+                WHERE TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+                AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+                AND A.HOSPITAL_CODE = :hospital_code
+                GROUP BY A.DOCTOR_NAME
+                ORDER BY 2 DESC
+                FETCH FIRST 5 ROW ONLY
+            ) Q1, NOVA_PATIENT_APPOINTMENT A
+            WHERE Q1.DOCTOR_NAME = A.DOCTOR_NAME
+            AND A.HOSPITAL_CODE = :hospital_code
+            AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+            AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+            GROUP BY A.DOCTOR_NAME
+    ) G1,
+    (
+        SELECT A.DOCTOR_NAME, COUNT(*) AS "TOTAL"
+        FROM (
+            SELECT A.DOCTOR_NAME, COUNT(*) AS "Total"
+            FROM NOVA_PATIENT_APPOINTMENT A
+            WHERE TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+            AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+            AND A.HOSPITAL_CODE = :hospital_code
+            GROUP BY A.DOCTOR_NAME
+            ORDER BY 2 DESC
+            FETCH FIRST 5 ROW ONLY
+        ) Q1, NOVA_PATIENT_APPOINTMENT A
+        WHERE Q1.DOCTOR_NAME = A.DOCTOR_NAME
+        AND A.STATUS = 'CANCEL'
+        AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+        AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+        AND A.HOSPITAL_CODE = :hospital_code
+        GROUP BY A.DOCTOR_NAME
+    ) G2,
+    (
+        SELECT A.DOCTOR_NAME, COUNT(*) AS "TOTAL"
+        FROM (
+            SELECT A.DOCTOR_NAME, COUNT(*) AS "Total"
+            FROM NOVA_PATIENT_APPOINTMENT A
+            WHERE TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+            AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+            AND A.HOSPITAL_CODE = :hospital_code
+            AND A.APPOINTMENT_DATE <= SYSDATE
+            GROUP BY A.DOCTOR_NAME
+            ORDER BY 2 DESC
+            FETCH FIRST 5 ROW ONLY
+        ) Q1, NOVA_PATIENT_APPOINTMENT A
+        WHERE Q1.DOCTOR_NAME = A.DOCTOR_NAME
+        AND A.STATUS IN ('NEW', 'CHANGE')
+        AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+        AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+        AND A.HOSPITAL_CODE = :hospital_code
+        AND A.APPOINTMENT_DATE <= SYSDATE
+        GROUP BY A.DOCTOR_NAME
+    ) G3,
+    (
+        SELECT A.DOCTOR_NAME, COUNT(*) AS "TOTAL"
+        FROM (
+            SELECT A.DOCTOR_NAME, COUNT(*) AS "Total"
+            FROM NOVA_PATIENT_APPOINTMENT A
+            WHERE TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+            AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+            AND A.HOSPITAL_CODE = :hospital_code
+            GROUP BY A.DOCTOR_NAME
+            ORDER BY 2 DESC
+            FETCH FIRST 5 ROW ONLY
+        ) Q1, NOVA_PATIENT_APPOINTMENT A
+        WHERE Q1.DOCTOR_NAME = A.DOCTOR_NAME
+        AND A.STATUS IN ('REGISTER')
+        AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+        AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+        AND A.HOSPITAL_CODE = :hospital_code
+        GROUP BY A.DOCTOR_NAME
+    ) G4
+    WHERE G2.DOCTOR_NAME (+)= G1.DOCTOR_NAME
+    AND G3.DOCTOR_NAME (+)= G1.DOCTOR_NAME
+    AND G4.DOCTOR_NAME (+)= G1.DOCTOR_NAME
+    ORDER BY 5 DESC`
+
+const APPOINTMENT_STATISTICS_BY_SPECIALTY =
+    `SELECT G1.SPECIALTY_DESCRIPTION, NVL(G3.TOTAL, 0) AS "TOTAL_MISSED", NVL(G2.TOTAL, 0) AS "TOTAL_CANCELLED", NVL(G4.TOTAL, 0) AS "TOTAL_REGISTERED", G1.TOTAL AS "TOTAL"
+    FROM (
+        SELECT Q1.SPECIALTY_DESCRIPTION, COUNT(*) AS "TOTAL" FROM (
+            SELECT D.SPECIALTY_DESCRIPTION, COUNT(*) AS "Total"  
+            FROM NOVA_PATIENT_APPOINTMENT A, NOVA_DOCTOR D
+            WHERE A.MCR = D.MCR_NO
+            AND D.PRIMARY = 'YES'
+            AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+            AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+            AND D.HOSPITAL_CODE = :hospital_code
+            AND A.HOSPITAL_CODE = :hospital_code
+            GROUP BY D.SPECIALTY_DESCRIPTION
+            ORDER BY 2 DESC
+            FETCH FIRST 5 ROW ONLY
+        ) Q1, NOVA_PATIENT_APPOINTMENT A, NOVA_DOCTOR D
+        WHERE Q1.SPECIALTY_DESCRIPTION = D.SPECIALTY_DESCRIPTION
+        AND A.MCR = D.MCR_NO
+        AND D.PRIMARY = 'YES'
+        --AND A.STATUS = 'CANCEL'
+        AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+        AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+        AND D.HOSPITAL_CODE = :hospital_code
+        AND A.HOSPITAL_CODE = :hospital_code
+        GROUP BY Q1.SPECIALTY_DESCRIPTION
+    ) G1,
+    (
+        SELECT Q1.SPECIALTY_DESCRIPTION, COUNT(*) AS "TOTAL" FROM (
+            SELECT D.SPECIALTY_DESCRIPTION, COUNT(*) AS "Total"  
+            FROM NOVA_PATIENT_APPOINTMENT A, NOVA_DOCTOR D
+            WHERE A.MCR = D.MCR_NO
+            AND D.PRIMARY = 'YES'
+            AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+            AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+            AND D.HOSPITAL_CODE = :hospital_code
+            AND A.HOSPITAL_CODE = :hospital_code
+            GROUP BY D.SPECIALTY_DESCRIPTION
+            ORDER BY 2 DESC
+            FETCH FIRST 5 ROW ONLY
+        ) Q1, NOVA_PATIENT_APPOINTMENT A, NOVA_DOCTOR D
+        WHERE Q1.SPECIALTY_DESCRIPTION = D.SPECIALTY_DESCRIPTION
+        AND A.MCR = D.MCR_NO
+        AND D.PRIMARY = 'YES'
+        AND A.STATUS = 'CANCEL'
+        AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+        AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+        AND D.HOSPITAL_CODE = :hospital_code
+        AND A.HOSPITAL_CODE = :hospital_code
+        GROUP BY Q1.SPECIALTY_DESCRIPTION
+    ) G2,
+    (
+        SELECT Q1.SPECIALTY_DESCRIPTION, COUNT(*) AS "TOTAL" FROM (
+            SELECT D.SPECIALTY_DESCRIPTION, COUNT(*) AS "Total"  
+            FROM NOVA_PATIENT_APPOINTMENT A, NOVA_DOCTOR D
+            WHERE A.MCR = D.MCR_NO
+            AND D.PRIMARY = 'YES'
+            AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+            AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+            AND A.APPOINTMENT_DATE <= SYSDATE
+            AND D.HOSPITAL_CODE = :hospital_code
+            AND A.HOSPITAL_CODE = :hospital_code
+            GROUP BY D.SPECIALTY_DESCRIPTION
+            ORDER BY 2 DESC
+            FETCH FIRST 5 ROW ONLY
+        ) Q1, NOVA_PATIENT_APPOINTMENT A, NOVA_DOCTOR D
+        WHERE Q1.SPECIALTY_DESCRIPTION = D.SPECIALTY_DESCRIPTION
+        AND A.MCR = D.MCR_NO
+        AND D.PRIMARY = 'YES'
+        AND A.STATUS IN ('NEW', 'CHANGE')
+        AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+        AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+        AND A.APPOINTMENT_DATE <= SYSDATE
+        AND D.HOSPITAL_CODE = :hospital_code
+        AND A.HOSPITAL_CODE = :hospital_code
+        GROUP BY Q1.SPECIALTY_DESCRIPTION
+    ) G3,
+    (
+        SELECT Q1.SPECIALTY_DESCRIPTION, COUNT(*) AS "TOTAL" FROM (
+            SELECT D.SPECIALTY_DESCRIPTION, COUNT(*) AS "Total"  
+            FROM NOVA_PATIENT_APPOINTMENT A, NOVA_DOCTOR D
+            WHERE A.MCR = D.MCR_NO
+            AND D.PRIMARY = 'YES'
+            AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+            AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+            AND D.HOSPITAL_CODE = :hospital_code
+            AND A.HOSPITAL_CODE = :hospital_code
+            GROUP BY D.SPECIALTY_DESCRIPTION
+            ORDER BY 2 DESC
+            FETCH FIRST 5 ROW ONLY
+        ) Q1, NOVA_PATIENT_APPOINTMENT A, NOVA_DOCTOR D
+        WHERE Q1.SPECIALTY_DESCRIPTION = D.SPECIALTY_DESCRIPTION
+        AND A.MCR = D.MCR_NO
+        AND D.PRIMARY = 'YES'
+        AND A.STATUS IN ('REGISTER')
+        AND TO_CHAR(A.APPOINTMENT_DATE, 'MON YYYY') = :dt
+        AND A.APPOINTMENT_DATE <= TRUNC(SYSDATE, 'DD')
+        AND D.HOSPITAL_CODE = :hospital_code
+        AND A.HOSPITAL_CODE = :hospital_code
+        GROUP BY Q1.SPECIALTY_DESCRIPTION
+    ) G4
+    WHERE G2.SPECIALTY_DESCRIPTION (+)= G1.SPECIALTY_DESCRIPTION
+    AND G3.SPECIALTY_DESCRIPTION (+)= G1.SPECIALTY_DESCRIPTION
+    AND G4.SPECIALTY_DESCRIPTION (+)= G1.SPECIALTY_DESCRIPTION
+    ORDER BY 5 DESC`
+
+const MORTALITY_TOTAL_DEATH =
+    `SELECT AGEGROUP, SUM(TOTAL) AS "TOTAL_DEATH" FROM
+    (
+    SELECT '0-9' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '10-19' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '20-29' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '30-39' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '40-49' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '50-59' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '60-69' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '70-79' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '>79' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION 
+    (
+        SELECT AGE.AGEGROUP, COUNT(AGE.AGEGROUP) as TOTAL
+        FROM (
+            SELECT
+            CASE
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) < 10) THEN '0-9'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 10 AND 19) THEN '10-19'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 20 AND 29) THEN '20-29'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 30 AND 39) THEN '30-39'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 40 AND 49) THEN '40-49'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 50 AND 59) THEN '50-59'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 60 AND 69) THEN '60-69'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 70 AND 79) THEN '70-79'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) > 79) THEN '>79'
+                ELSE 'NULL'
+            END AS "AGEGROUP"
+            FROM NOVA_PATIENT WHERE PRN IN (SELECT PRN FROM NOVA_PATIENT_DECEASE_INFO WHERE TO_CHAR(DECEASE_DATE_TIME, 'YYYY') = :year)
+        ) AGE
+        GROUP BY AGE.AGEGROUP
+        )
+    ) GROUP BY AGEGROUP
+    ORDER BY AGEGROUP`
+
+const MORTALITY_TOTAL_DEATH_BY_GENDER =
+    `SELECT AGEGROUP, SUM(TOTAL) AS "TOTAL_DEATH" FROM
+    (
+    SELECT '0-9' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '10-19' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '20-29' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '30-39' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '40-49' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '50-59' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '60-69' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '70-79' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION SELECT '>79' AS AGEGROUP, 0 AS TOTAL FROM DUAL
+    UNION 
+    (
+        SELECT AGE.AGEGROUP, COUNT(AGE.AGEGROUP) as TOTAL
+        FROM (
+            SELECT PRN, PATIENT_NAME, GENDER,
+            CASE
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) < 10) THEN '0-9'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 10 AND 19) THEN '10-19'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 20 AND 29) THEN '20-29'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 30 AND 39) THEN '30-39'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 40 AND 49) THEN '40-49'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 50 AND 59) THEN '50-59'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 60 AND 69) THEN '60-69'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) BETWEEN 70 AND 79) THEN '70-79'
+                WHEN (TRUNC(MONTHS_BETWEEN(DEATH_DATE, DOB) / 12) > 79) THEN '>79'
+                ELSE 'NULL'
+            END AS "AGEGROUP"
+            FROM NOVA_PATIENT WHERE PRN IN (SELECT PRN FROM NOVA_PATIENT_DECEASE_INFO WHERE TO_CHAR(DECEASE_DATE_TIME, 'YYYY') = :year)
+            AND UPPER(GENDER) = :gender
+        ) AGE
+        GROUP BY AGE.AGEGROUP
+        )
+    ) GROUP BY AGEGROUP
+    ORDER BY AGEGROUP`
+
+const MORTALITY_TOTAL_DEATH_COUNT_BY_GENDER =
+    `SELECT UPPER(GENDER) AS GENDER, COUNT(*) AS TOTAL_DEATH FROM (
+        SELECT GENDER
+        FROM NOVA_PATIENT WHERE PRN IN (SELECT PRN FROM NOVA_PATIENT_DECEASE_INFO WHERE TO_CHAR(DECEASE_DATE_TIME, 'YYYY') = :year)
+    ) GROUP BY GENDER ORDER BY GENDER`;
+
+const MORTALITY_TOTAL_DEATH_CASE =
+    `SELECT REASON, COUNT(*) AS TOTAL_DEATH FROM (
+    SELECT D.REASON
+    FROM NOVA_PATIENT P, NOVA_PATIENT_DECEASE_INFO D
+    WHERE P.PRN = D.PRN
+    AND TO_CHAR(D.DECEASE_DATE_TIME, 'YYYY') = :year
+    ) GROUP BY REASON ORDER BY REASON
+    FETCH FIRST 10 ROW ONLY`
+
+// -------------------------------------------------- [eDashboard - Outpatient Attendance] -------------------------------------------------- //
+
+const OP_ATTENDANCE_PRC_BY_MONTH =
+    `BEGIN NH_RPT_OP_ATTENDANCE_PRC(:user_name, :user_session_id, SYSDATE-365, SYSDATE, :hospital_code); END;`
+
+const OP_ATTENDANCE_PRC_BY_7DAY = 
+    `BEGIN NH_RPT_OP_ATTENDANCE_PRC(:user_name, :user_session_id, SYSDATE-7, SYSDATE, :hospital_code); END;`
+
+const OP_ATTENDANCE_PRC_BY_30DAY = 
+    `BEGIN NH_RPT_OP_ATTENDANCE_PRC(:user_name, :user_session_id, SYSDATE-30, SYSDATE, :hospital_code); END;`
+
+const GET_OP_ATTENDANCE_BY_MONTH =
+    `SELECT TO_CHAR(TO_DATE(A."YearMonth", 'MON YYYY'), 'MON YYYY') AS "YearMonth", A."Total" FROM
+    (
+    SELECT TO_CHAR(REG_DATE, 'MON YYYY') AS "YearMonth", COUNT(*) AS "Total"  
+    FROM NH_RPT_OP_ATTENDANCE_TEMP
+    WHERE USER_SESSION_ID = :user_session_id
+    AND REG_DATE >= ADD_MONTHS(TRUNC(SYSDATE,'MM'), -:month) 
+    AND REG_DATE < TRUNC(SYSDATE, 'MM') 
+    GROUP BY TO_CHAR(REG_DATE, 'MON YYYY')
+    ) A
+    ORDER BY TO_DATE(A."YearMonth", 'MON YYYY') ASC`
+
+const GET_OP_ATTENDANCE_BY_DAY = 
+    `SELECT TO_CHAR(TO_DATE(A."DayMonth", 'DD-MON'), 'DD-MON') AS "DayMonth", A."Total" FROM
+    (
+        SELECT TO_CHAR(REG_DATE, 'DD-MON') AS "DayMonth", COUNT(*) AS "Total"  
+        FROM NH_RPT_OP_ATTENDANCE_TEMP
+        WHERE USER_SESSION_ID = :user_session_id
+        GROUP BY TO_CHAR(REG_DATE, 'DD-MON')
+    ) A
+    ORDER BY TO_DATE(A."DayMonth", 'DD-MON') ASC`
+
+const GET_OP_ATTENDANCE_BYDOCTOR_BYMONTH = 
+    `SELECT HCP_SHORTNAME AS "DOCTOR_NAME", COUNT(*) AS "TOTALCOUNT" FROM NH_RPT_OP_ATTENDANCE_TEMP
+    WHERE TO_CHAR(REG_DATE, 'MON YYYY') = :sDate AND USER_SESSION_ID = :user_session_id
+    GROUP BY HCP_SHORTNAME
+    ORDER BY 2 DESC
+    FETCH FIRST 10 ROW ONLY`
+
+const GET_OP_ATTENDANCE_BYCLINIC_BYMONTH = 
+    `SELECT CLINIC_NAME AS "CLINIC_NAME", COUNT(*) AS "TOTALCOUNT" FROM NH_RPT_OP_ATTENDANCE_TEMP
+    WHERE TO_CHAR(REG_DATE, 'MON YYYY') = :sDate AND USER_SESSION_ID = :user_session_id
+    GROUP BY CLINIC_NAME
+    ORDER BY 2 DESC
+    FETCH FIRST 10 ROW ONLY`
+
+const GET_OP_ATTENDANCE_BYDOCTOR_BYDAY = 
+    `SELECT HCP_SHORTNAME AS "DOCTOR_NAME", COUNT(*) AS "TOTALCOUNT" FROM NH_RPT_OP_ATTENDANCE_TEMP
+    WHERE TO_CHAR(REG_DATE, 'DD-MON') = :sDate AND USER_SESSION_ID = :user_session_id
+    GROUP BY HCP_SHORTNAME
+    ORDER BY 2 DESC
+    FETCH FIRST 10 ROW ONLY`
+
+const GET_OP_ATTENDANCE_BYCLINIC_BYDAY = 
+    `SELECT CLINIC_NAME AS "CLINIC_NAME", COUNT(*) AS "TOTALCOUNT" FROM NH_RPT_OP_ATTENDANCE_TEMP
+    WHERE TO_CHAR(REG_DATE, 'DD-MON') = :sDate AND USER_SESSION_ID = :user_session_id
+    GROUP BY CLINIC_NAME
+    ORDER BY 2 DESC
+    FETCH FIRST 10 ROW ONLY`
+
+// -------------------------------------------------- [eDashboard - Outpatient Attendance] -------------------------------------------------- //
+
+const IP_ADMISSION_PRC_BY_MONTH =
+    `
+    DECLARE
+        P_USER_ID VARCHAR2(200);
+        P_DATE_FROM DATE;
+        P_DATE_TO DATE;
+        P_BED_CLASS VARCHAR2(200);
+        P_WARD_CODE NUMBER;
+        P_ROOM_CODE NUMBER;
+        P_SPECIAL_CODE VARCHAR2(200);
+        P_ATTEND_DOCTOR VARCHAR2(200);
+        P_INCLUDE_DISCHARGE VARCHAR2(200);
+        P_DOB_DATE VARCHAR2(200);
+        P_DOB_MONTH VARCHAR2(200);
+        P_RELIGION VARCHAR2(200);
+        P_COMPANY_ID NUMBER;
+        P_USER_SESSION_ID VARCHAR2(200);
+        P_MASTER_EMPLOYER_ID NUMBER;
+        P_REFERRAL_CODE VARCHAR2(200);
+        P_INSURER_CODE VARCHAR2(200);
+        O_RECORD_EXIST VARCHAR2(200);
+ 
+    BEGIN
+        P_USER_ID := :user_name;
+        P_DATE_FROM := SYSDATE-365;
+        P_DATE_TO := SYSDATE;
+        P_BED_CLASS := NULL;
+        P_WARD_CODE := NULL;
+        P_ROOM_CODE := NULL;
+        P_SPECIAL_CODE := NULL;
+        P_ATTEND_DOCTOR := NULL;
+        P_INCLUDE_DISCHARGE := NULL;
+        P_DOB_DATE := NULL;
+        P_DOB_MONTH := NULL;
+        P_RELIGION := NULL;
+        P_COMPANY_ID := :hospital_code;
+        P_USER_SESSION_ID := :user_session_id;
+        P_MASTER_EMPLOYER_ID := NULL;
+        P_REFERRAL_CODE := NULL;
+        P_INSURER_CODE := NULL;
+
+  NH_RPT_IN_PATIENT_PRC(
+    P_USER_ID => P_USER_ID,
+    P_DATE_FROM => P_DATE_FROM,
+    P_DATE_TO => P_DATE_TO,
+    P_BED_CLASS => P_BED_CLASS,
+    P_WARD_CODE => P_WARD_CODE,
+    P_ROOM_CODE => P_ROOM_CODE,
+    P_SPECIAL_CODE => P_SPECIAL_CODE,
+    P_ATTEND_DOCTOR => P_ATTEND_DOCTOR,
+    P_INCLUDE_DISCHARGE => P_INCLUDE_DISCHARGE,
+    P_DOB_DATE => P_DOB_DATE,
+    P_DOB_MONTH => P_DOB_MONTH,
+    P_RELIGION => P_RELIGION,
+    P_COMPANY_ID => P_COMPANY_ID,
+    P_USER_SESSION_ID => P_USER_SESSION_ID,
+    P_MASTER_EMPLOYER_ID => P_MASTER_EMPLOYER_ID,
+    P_REFERRAL_CODE => P_REFERRAL_CODE,
+    P_INSURER_CODE => P_INSURER_CODE,
+    O_RECORD_EXIST => O_RECORD_EXIST
+  );
+    END;
+    `
+
+const IP_ADMISSION_PRC_BY_30DAY =
+    `
+    DECLARE
+        P_USER_ID VARCHAR2(200);
+        P_DATE_FROM DATE;
+        P_DATE_TO DATE;
+        P_BED_CLASS VARCHAR2(200);
+        P_WARD_CODE NUMBER;
+        P_ROOM_CODE NUMBER;
+        P_SPECIAL_CODE VARCHAR2(200);
+        P_ATTEND_DOCTOR VARCHAR2(200);
+        P_INCLUDE_DISCHARGE VARCHAR2(200);
+        P_DOB_DATE VARCHAR2(200);
+        P_DOB_MONTH VARCHAR2(200);
+        P_RELIGION VARCHAR2(200);
+        P_COMPANY_ID NUMBER;
+        P_USER_SESSION_ID VARCHAR2(200);
+        P_MASTER_EMPLOYER_ID NUMBER;
+        P_REFERRAL_CODE VARCHAR2(200);
+        P_INSURER_CODE VARCHAR2(200);
+        O_RECORD_EXIST VARCHAR2(200);
+ 
+    BEGIN
+        P_USER_ID := :user_name;
+        P_DATE_FROM := SYSDATE-30;
+        P_DATE_TO := SYSDATE;
+        P_BED_CLASS := NULL;
+        P_WARD_CODE := NULL;
+        P_ROOM_CODE := NULL;
+        P_SPECIAL_CODE := NULL;
+        P_ATTEND_DOCTOR := NULL;
+        P_INCLUDE_DISCHARGE := NULL;
+        P_DOB_DATE := NULL;
+        P_DOB_MONTH := NULL;
+        P_RELIGION := NULL;
+        P_COMPANY_ID := :hospital_code;
+        P_USER_SESSION_ID := :user_session_id;
+        P_MASTER_EMPLOYER_ID := NULL;
+        P_REFERRAL_CODE := NULL;
+        P_INSURER_CODE := NULL;
+
+  NH_RPT_IN_PATIENT_PRC(
+    P_USER_ID => P_USER_ID,
+    P_DATE_FROM => P_DATE_FROM,
+    P_DATE_TO => P_DATE_TO,
+    P_BED_CLASS => P_BED_CLASS,
+    P_WARD_CODE => P_WARD_CODE,
+    P_ROOM_CODE => P_ROOM_CODE,
+    P_SPECIAL_CODE => P_SPECIAL_CODE,
+    P_ATTEND_DOCTOR => P_ATTEND_DOCTOR,
+    P_INCLUDE_DISCHARGE => P_INCLUDE_DISCHARGE,
+    P_DOB_DATE => P_DOB_DATE,
+    P_DOB_MONTH => P_DOB_MONTH,
+    P_RELIGION => P_RELIGION,
+    P_COMPANY_ID => P_COMPANY_ID,
+    P_USER_SESSION_ID => P_USER_SESSION_ID,
+    P_MASTER_EMPLOYER_ID => P_MASTER_EMPLOYER_ID,
+    P_REFERRAL_CODE => P_REFERRAL_CODE,
+    P_INSURER_CODE => P_INSURER_CODE,
+    O_RECORD_EXIST => O_RECORD_EXIST
+  );
+    END;
+    `
+
+const IP_ADMISSION_PRC_BY_7DAY =
+    `
+    DECLARE
+        P_USER_ID VARCHAR2(200);
+        P_DATE_FROM DATE;
+        P_DATE_TO DATE;
+        P_BED_CLASS VARCHAR2(200);
+        P_WARD_CODE NUMBER;
+        P_ROOM_CODE NUMBER;
+        P_SPECIAL_CODE VARCHAR2(200);
+        P_ATTEND_DOCTOR VARCHAR2(200);
+        P_INCLUDE_DISCHARGE VARCHAR2(200);
+        P_DOB_DATE VARCHAR2(200);
+        P_DOB_MONTH VARCHAR2(200);
+        P_RELIGION VARCHAR2(200);
+        P_COMPANY_ID NUMBER;
+        P_USER_SESSION_ID VARCHAR2(200);
+        P_MASTER_EMPLOYER_ID NUMBER;
+        P_REFERRAL_CODE VARCHAR2(200);
+        P_INSURER_CODE VARCHAR2(200);
+        O_RECORD_EXIST VARCHAR2(200);
+ 
+    BEGIN
+        P_USER_ID := :user_name;
+        P_DATE_FROM := SYSDATE-7;
+        P_DATE_TO := SYSDATE;
+        P_BED_CLASS := NULL;
+        P_WARD_CODE := NULL;
+        P_ROOM_CODE := NULL;
+        P_SPECIAL_CODE := NULL;
+        P_ATTEND_DOCTOR := NULL;
+        P_INCLUDE_DISCHARGE := NULL;
+        P_DOB_DATE := NULL;
+        P_DOB_MONTH := NULL;
+        P_RELIGION := NULL;
+        P_COMPANY_ID := :hospital_code;
+        P_USER_SESSION_ID := :user_session_id;
+        P_MASTER_EMPLOYER_ID := NULL;
+        P_REFERRAL_CODE := NULL;
+        P_INSURER_CODE := NULL;
+
+  NH_RPT_IN_PATIENT_PRC(
+    P_USER_ID => P_USER_ID,
+    P_DATE_FROM => P_DATE_FROM,
+    P_DATE_TO => P_DATE_TO,
+    P_BED_CLASS => P_BED_CLASS,
+    P_WARD_CODE => P_WARD_CODE,
+    P_ROOM_CODE => P_ROOM_CODE,
+    P_SPECIAL_CODE => P_SPECIAL_CODE,
+    P_ATTEND_DOCTOR => P_ATTEND_DOCTOR,
+    P_INCLUDE_DISCHARGE => P_INCLUDE_DISCHARGE,
+    P_DOB_DATE => P_DOB_DATE,
+    P_DOB_MONTH => P_DOB_MONTH,
+    P_RELIGION => P_RELIGION,
+    P_COMPANY_ID => P_COMPANY_ID,
+    P_USER_SESSION_ID => P_USER_SESSION_ID,
+    P_MASTER_EMPLOYER_ID => P_MASTER_EMPLOYER_ID,
+    P_REFERRAL_CODE => P_REFERRAL_CODE,
+    P_INSURER_CODE => P_INSURER_CODE,
+    O_RECORD_EXIST => O_RECORD_EXIST
+  );
+    END;
+    `
+
+const GET_IP_ADMISSION_BY_MONTH =
+    `SELECT TO_CHAR(TO_DATE(A."YearMonth", 'MON YYYY'), 'MON YYYY') AS "YearMonth", A."Total" FROM
+    (
+        SELECT TO_CHAR(ADMIT_DATE_TIME, 'MON YYYY') AS "YearMonth", COUNT(*) AS "Total"  
+        FROM NH_RPT_IN_PATIENT_TEMP
+        WHERE USER_SESSION_ID = :user_session_id AND
+        ADMIT_DATE_TIME >= ADD_MONTHS(TRUNC(SYSDATE,'MM'), -:month) AND ADMIT_DATE_TIME < TRUNC(SYSDATE, 'MM')
+        GROUP BY TO_CHAR(ADMIT_DATE_TIME, 'MON YYYY')
+    ) A
+    ORDER BY TO_DATE(A."YearMonth", 'MON YYYY') ASC`
+
+const GET_IP_ADMISSION_BY_DAY = 
+    `SELECT TO_CHAR(TO_DATE(A."DayMonth", 'DD-MON'), 'DD-MON') AS "DayMonth", A."Total" FROM
+    (
+        SELECT TO_CHAR(ADMIT_DATE_TIME, 'DD-MON') AS "DayMonth", COUNT(*) AS "Total"  
+        FROM NH_RPT_IN_PATIENT_TEMP
+        WHERE USER_SESSION_ID = :user_session_id
+        GROUP BY TO_CHAR(ADMIT_DATE_TIME, 'DD-MON')
+    ) A
+    ORDER BY TO_DATE(A."DayMonth", 'DD-MON') ASC`
+
+const GET_IP_ADMISSION_BYWARD_BYMONTH = 
+    `SELECT WARDNAME AS "WARD_NAME", COUNT(*) AS "TOTALCOUNT" FROM NH_RPT_IN_PATIENT_TEMP
+    WHERE TO_CHAR(ADMIT_DATE_TIME, 'MON YYYY') = :sDate AND USER_SESSION_ID = :user_session_id
+    GROUP BY WARDNAME
+    ORDER BY 2 DESC
+    FETCH FIRST 10 ROW ONLY`
+
+const GET_IP_ADMISSION_BYDOCTOR_BYMONTH = 
+    `SELECT HCP_NAME AS "DOCTOR_NAME", COUNT(*) AS "TOTALCOUNT" FROM NH_RPT_IN_PATIENT_TEMP
+    WHERE TO_CHAR(ADMIT_DATE_TIME, 'MON YYYY') = :sDate AND USER_SESSION_ID = :user_session_id
+    GROUP BY HCP_NAME
+    ORDER BY 2 DESC
+    FETCH FIRST 10 ROW ONLY`
+
+const GET_IP_ADMISSION_BYWARD_BYDAY = 
+    `SELECT WARDNAME AS "WARD_NAME", COUNT(*) AS "TOTALCOUNT" FROM NH_RPT_IN_PATIENT_TEMP
+    WHERE TO_CHAR(ADMIT_DATE_TIME, 'DD-MON') = :sDate AND USER_SESSION_ID = :user_session_id
+    GROUP BY WARDNAME
+    ORDER BY 2 DESC
+    FETCH FIRST 10 ROW ONLY`
+
+const GET_IP_ADMISSION_BYDOCTOR_BYDAY = 
+    `SELECT HCP_NAME AS "DOCTOR_NAME", COUNT(*) AS "TOTALCOUNT" FROM NH_RPT_IN_PATIENT_TEMP
+    WHERE TO_CHAR(ADMIT_DATE_TIME, 'DD-MON') = :sDate AND USER_SESSION_ID = :user_session_id
+    GROUP BY HCP_NAME
+    ORDER BY 2 DESC
+    FETCH FIRST 10 ROW ONLY`

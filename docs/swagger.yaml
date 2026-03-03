@@ -1,0 +1,978 @@
+basePath: /edashboard
+info:
+  contact: {}
+  description: E-Dashboard API description.
+  title: Swagger E-Dashboard API
+  version: "1.0"
+paths:
+  /admission/report-popup:
+    get:
+      parameters:
+      - description: sDate
+        in: query
+        name: sDate
+        required: true
+        type: string
+      - description: dateType
+        in: query
+        name: dateType
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Admission
+  /admission/report/day:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      - description: days
+        in: query
+        name: days
+        required: true
+        type: string
+      - description: sHospitalCode
+        in: query
+        name: sHospitalCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Admission
+  /admission/report/month:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      - description: months
+        in: query
+        name: months
+        required: true
+        type: string
+      - description: sHospitalCode
+        in: query
+        name: sHospitalCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Admission
+  /appointment/statistics:
+    get:
+      parameters:
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Appointment
+  /appointment/statistics-popup:
+    get:
+      parameters:
+      - description: sDate
+        in: query
+        name: sDate
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Appointment
+  /attendance/outpatient-popup:
+    get:
+      parameters:
+      - description: sDate
+        in: query
+        name: sDate
+        required: true
+        type: string
+      - description: dateType
+        in: query
+        name: dateType
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Attendance
+  /attendance/outpatient/day:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      - description: days
+        in: query
+        name: days
+        required: true
+        type: string
+      - description: sHospitalCode
+        in: query
+        name: sHospitalCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Attendance
+  /attendance/outpatient/month:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      - description: months
+        in: query
+        name: months
+        required: true
+        type: string
+      - description: sHospitalCode
+        in: query
+        name: sHospitalCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Attendance
+  /finance/ar-ageing:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: sTopARNum
+        in: query
+        name: sTopARNum
+        required: true
+        type: string
+      - description: COMPANY_ID
+        in: query
+        name: COMPANY_ID
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Finance
+  /inpatient/average-los:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Inpatient
+  /inpatient/bed-status:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Inpatient
+  /inpatient/bed-status-popup:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sBedStatus
+        in: query
+        name: sBedStatus
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Inpatient
+  /inpatient/demographics:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Inpatient
+  /inpatient/regadm:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Inpatient
+  /inpatient/specialty:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Inpatient
+  /inpatient/ward-census:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: COMPANY_ID
+        in: query
+        name: COMPANY_ID
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Inpatient
+  /lab/charges:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sRptType
+        in: query
+        name: sRptType
+        required: true
+        type: string
+      - description: COMPANY_ID
+        in: query
+        name: COMPANY_ID
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Lab
+  /lab/kpi-statistics:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sRptType
+        in: query
+        name: sRptType
+        required: true
+        type: string
+      - description: COMPANY_ID
+        in: query
+        name: COMPANY_ID
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Lab
+  /lab/service-cls:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sRptType
+        in: query
+        name: sRptType
+        required: true
+        type: string
+      - description: COMPANY_ID
+        in: query
+        name: COMPANY_ID
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Lab
+  /mortality/lookup/gender:
+    get:
+      parameters:
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Mortality
+  /mortality/total-death:
+    get:
+      parameters:
+      - description: sYear
+        in: query
+        name: sYear
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Mortality
+  /mortality/total-death-case:
+    get:
+      parameters:
+      - description: sYear
+        in: query
+        name: sYear
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Mortality
+  /mortality/total-death-count-gender:
+    get:
+      parameters:
+      - description: sYear
+        in: query
+        name: sYear
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Mortality
+  /mortality/total-death-gender:
+    get:
+      parameters:
+      - description: sYear
+        in: query
+        name: sYear
+        required: true
+        type: string
+      - description: sGender
+        in: query
+        name: sGender
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Mortality
+  /outpatient/attendances:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Outpatient
+  /outpatient/clinic:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Outpatient
+  /outpatient/clinic-popup:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: sClinicCode
+        in: query
+        name: sClinicCode
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Outpatient
+  /outpatient/demographics:
+    get:
+      parameters:
+      - description: vx_user_session_id
+        in: query
+        name: vx_user_session_id
+        required: true
+        type: string
+      - description: vx_user_name
+        in: query
+        name: vx_user_name
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Outpatient
+  /referral/external:
+    get:
+      parameters:
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Referral
+  /referral/external-popup:
+    get:
+      parameters:
+      - description: sDate
+        in: query
+        name: sDate
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Referral
+  /referral/internal:
+    get:
+      parameters:
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Referral
+  /referral/internal-popup:
+    get:
+      parameters:
+      - description: sDate
+        in: query
+        name: sDate
+        required: true
+        type: string
+      - description: sType
+        in: query
+        name: sType
+        required: true
+        type: string
+      - description: vx_comp_name
+        in: query
+        name: vx_comp_name
+        required: true
+        type: string
+      - description: vx_environment
+        in: query
+        name: vx_environment
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      tags:
+      - Referral
+swagger: "2.0"
