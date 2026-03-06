@@ -1,0 +1,1 @@
+docker build -t gofiber-e-dashboard .

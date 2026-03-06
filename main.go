@@ -77,7 +77,7 @@ func main() {
         go func(p string) {
             defer wg.Done()
             if err := app.Listen(fmt.Sprintf(":%s", p), fiber.ListenConfig{
-                EnablePrefork: true,
+                EnablePrefork: false,
             }); err != nil {
                 utils.Logger.Fatal().Err(err).Msg(fmt.Sprintf("Error starting server on port %s: %v", p, err))
             }

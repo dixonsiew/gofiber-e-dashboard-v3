@@ -1,0 +1,1 @@
+docker run -p 8200:8200 --privileged gofiber-e-dashboard
